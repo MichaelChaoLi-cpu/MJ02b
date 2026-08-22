@@ -1,0 +1,10 @@
+[project]
+name = "MJ02b"
+version = "0.0.1"
+dependencies = [
+    "dvc>=3.67.1",
+]
+
+authors = [
+  { name = "Mike Li"}
+]
