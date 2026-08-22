@@ -1,0 +1,7 @@
+# MiliFrame local agent/runtime files
+.codex/
+.claude/
+.env
+CLAUDE.md
+AGENTS.md
+/article
