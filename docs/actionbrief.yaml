@@ -1,0 +1,1094 @@
+doc_type: actionbrief
+version: 1.0.0
+datasetDictionary:
+  cses_harmonized:
+    datasetSourceName: Cambodia Socio-Economic Survey harmonized modules
+    datasetDescription: Nine repeated cross-sectional CSES releases harmonized at person, household, labor, and housing levels
+      and linked through validated survey and geographic keys.
+    datasetAttribute: table
+    datasetProvider: Cambodia National Institute of Statistics
+    datasetGenerationInfo: Project database scripts align the raw Stata modules into PostgreSQL final_* tables, document source-variable
+      dictionaries in ind_que_* tables, and retain alignment summaries in align_summary_* tables.
+    datasetPeriod: Nominal survey-wave years 2007-2021 across nine included releases
+    datasetScale: National working-age repeated cross-section; 179,217 analytical person-wave rows
+    datasetSpatialResolution: 197 current districts or municipalities after the validated current-boundary crosswalk
+    datasetTemporalResolution: Released survey month within nominal survey-wave year; exact interview day is unavailable
+    datasetPreprocessingInfo: Analysis reads harmonized PostgreSQL tables in a read-only transaction. Positive sampling weights,
+      ages 15-64, released month, and current-district linkage form the frozen analytical contract.
+  climate_reanalysis:
+    datasetSourceName: ERA5-family daily gridded climate reanalysis
+    datasetDescription: Daily air temperature, humidity-derived wet-bulb and apparent temperature, and precipitation measures
+      aggregated to district-calendar-month exposure cells.
+    datasetAttribute: netcdf
+    datasetProvider: ECMWF Copernicus Climate Change Service
+    datasetGenerationInfo: Persistent database scripts derive daily heat metrics, aggregate them by district-year-month, and
+      publish the analytical fields through final_CLIMATE_MONTHLY_ADMIN2 and the read-only heat-labor analytical view.
+    datasetPeriod: 2007-2021 matched to the nine survey releases
+    datasetScale: District-calendar-month exposure panel; 3,325 current-exposure cells and 3,114 complete current-plus-lag
+      cells
+    datasetSpatialResolution: District centroid or documented land representative point for the coastal fallback district
+    datasetTemporalResolution: Daily source observations aggregated to calendar month; cumulative measures combine current
+      and immediately preceding months
+    datasetPreprocessingInfo: Temperature thresholds, monthly means, rainfall totals, lag and lead fields, and two-month cumulative
+      measures are generated deterministically before joining to respondents by current district, nominal survey year, and
+      released survey month.
+  cambodia_admin_boundaries:
+    datasetSourceName: Cambodia current-district boundaries and regional map context
+    datasetDescription: Validated polygons for the 197 current districts or municipalities, with neighboring-country and lake
+      geometry used only for readable map context.
+    datasetAttribute: shapefile
+    datasetProvider: Project current-boundary crosswalk; Natural Earth regional context
+    datasetGenerationInfo: Persistent spatial analysis code validates district identifiers and geometry, builds row-standardized
+      Queen-contiguity weights, and records the nearest-neighbor fallback for any disconnected district.
+    datasetPeriod: Current reference geography used consistently across all survey waves
+    datasetScale: National Cambodia district map with regional neighbor-country context
+    datasetSpatialResolution: 197 current district or municipality polygons
+    datasetTemporalResolution: Time-invariant reference geometry
+    datasetPreprocessingInfo: Historical survey geography is crosswalked to current districts. Spatial permutation diagnostics
+      use 9,999 seeded permutations and Benjamini-Hochberg adjustment of local tests at 10 percent.
+  heat_labor_analytic_view:
+    datasetSourceName: CSES-climate heat-labor analytical view
+    datasetDescription: Database-first integration of harmonized survey outcomes and controls with district-month climate
+      exposures used by every formal analysis script.
+    datasetAttribute: table
+    datasetProvider: Project-generated from CSES and ERA5-family inputs
+    datasetGenerationInfo: Persistent src/database code defines the joined analytical relation; persistent src/analyses code
+      starts PostgreSQL sessions with default_transaction_read_only=on and constructs outcome-specific samples without database
+      writes.
+    datasetPeriod: 2007-2021
+    datasetScale: 179,217 person-wave rows before outcome- and model-specific complete-case restrictions
+    datasetSpatialResolution: Respondent linked to current district; exposure shared within district-year-month
+    datasetTemporalResolution: Nominal survey-wave year and released survey month
+    datasetPreprocessingInfo: The database is the authoritative analysis source. No parquet copy in data/processed is required
+      under the approved database-first architecture; exported files are figures, tables, and review metadata only.
+  district_decision_outputs:
+    datasetSourceName: Wave-balanced district decision indicators and allocation scenarios
+    datasetDescription: Derived district hazards, population and vulnerability scales, policy-objective burdens, targeting
+      results, and separate structural and wave-composition robustness measures.
+    datasetAttribute: table
+    datasetProvider: Project-generated from the read-only CSES-climate analytical view
+    datasetGenerationInfo: Persistent src/analyses code aggregates months within district-wave, weights observed waves equally,
+      evaluates A0-A5, enumerates 420 structural scenarios, and runs 1,000 seeded survey-wave bootstrap replicates.
+    datasetPeriod: Nine survey waves spanning nominal years 2007-2021
+    datasetScale: 197 districts; 36 strategy-capacity rows; 420 structural scenarios; 1,000 wave-bootstrap replicates
+    datasetSpatialResolution: Current district or municipality
+    datasetTemporalResolution: Wave-balanced historical district summary
+    datasetPreprocessingInfo: All inputs are read from PostgreSQL in read-only sessions. Threshold burden is primary; nonnegative
+      continuous wet-bulb excess above 26 C is a sensitivity. No database writes or routine processed-data cache are used.
+variableDictionary:
+  survey_wave:
+    variableNameInDataset: survey_wave
+    variableNameInArticle: ' Survey Wave'
+    variableAttribute: categorical
+    variableUnit: survey release label
+    variableDescription: CSES Survey Wave. Wave-specific survey release label. Use the harmonized labels for the nine included
+      waves.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  survey_year:
+    variableNameInDataset: survey_year
+    variableNameInArticle: ' Survey Year'
+    variableAttribute: ordinal
+    variableUnit: calendar year
+    variableDescription: Nominal Survey-Wave Year. \(y\) in the matched district-year-month cell. Use the first calendar year
+      represented by Survey Wave; do not replace it with inferred interview year.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  survey_month:
+    variableNameInDataset: survey_month
+    variableNameInArticle: ' Survey Month'
+    variableAttribute: ordinal
+    variableUnit: calendar month (1-12)
+    variableDescription: Released Survey Month. \(m \in \{1,\ldots,12\}\). Use the released month when valid; do not infer
+      a day.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  district:
+    variableNameInDataset: admin2_code
+    variableNameInArticle: ' District'
+    variableAttribute: categorical
+    variableUnit: current district code
+    variableDescription: Current District or Municipality. \(g\) in the matched district-year-month cell. Use the validated
+      current-boundary district crosswalk.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  district_calendar_month:
+    variableNameInDataset: admin2_calendar_month
+    variableNameInArticle: ' District Calendar Month'
+    variableAttribute: categorical
+    variableUnit: district-by-calendar-month cell
+    variableDescription: District-Specific Seasonal Cell. Interaction \(g \times m\). Concatenate District and calendar Survey
+      Month as the absorbed local-seasonality effect.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  person_weight:
+    variableNameInDataset: analysis_weight
+    variableNameInArticle: ' Person Weight'
+    variableAttribute: continuous
+    variableUnit: sampling-weight units
+    variableDescription: Analysis Sampling Weight. \(w_i > 0\). Use positive person weight, falling back to positive household
+      weight only where the aligned person weight is unavailable.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  work_participation:
+    variableNameInDataset: worked_past_week
+    variableNameInArticle: ' Work Participation'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Worked in the Past Seven Days. \(Y_i = 1\) if at least one hour of work was reported in the prior
+      seven days and \(0\) otherwise. Retain released binary coding; missing responses remain missing.
+    variableSource: cses_harmonized
+    observationNumber: 179215
+  weekly_hours_including_nonworkers:
+    variableNameInDataset: weekly_hours_including_zero
+    variableNameInArticle: ' Weekly Hours Including Nonworkers'
+    variableAttribute: continuous
+    variableUnit: hours per week
+    variableDescription: Weekly Labor Hours Including Zeros. \(Hours_i = 0\) for nonworkers and reported weekly hours for
+      workers. Set to zero only when Work Participation equals zero; retain missing when a worker lacks valid hours.
+    variableSource: cses_harmonized
+    observationNumber: 136364
+  log_monthly_wage:
+    variableNameInDataset: log_monthly_salary_wages
+    variableNameInArticle: ' Log Monthly Wage'
+    variableAttribute: continuous
+    variableUnit: log(1 + nominal monthly riel)
+    variableDescription: Log Monthly Salary or Wages. \(W_i = \log(1 + Wage_i)\). Apply to nonnegative nominal monthly wage
+      reports; use only in the reporting subsample.
+    variableSource: cses_harmonized
+    observationNumber: 74509
+  hours_observed:
+    variableNameInDataset: hours_observed
+    variableNameInArticle: ' Hours Observed'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Weekly-Hours Observation Indicator. \(S_i^H = 1\) when Weekly Hours Including Nonworkers is observed.
+      Derived before outcome-specific sample restriction.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  wage_observed:
+    variableNameInDataset: wage_observed
+    variableNameInArticle: ' Wage Observed'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Monthly-Wage Observation Indicator. \(S_i^W = 1\) when Log Monthly Wage is observed. Derived before
+      outcome-specific sample restriction.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  extreme_humid_heat_days:
+    variableNameInDataset: days_wbmax_ge_26c
+    variableNameInArticle: ' Extreme Humid-Heat Days'
+    variableAttribute: count
+    variableUnit: days per month
+    variableDescription: Monthly Days with Maximum Wet-Bulb Temperature at Least 26 C. \(D_{gmy}^{26} = \sum_d 1(WBmax_{gmyd}
+      \ge 26)\). Count daily threshold exceedances in the matched district-year-month.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  five_day_humid_heat_exposure:
+    variableNameInDataset: wb26_5days
+    variableNameInArticle: ' Five-Day Humid-Heat Exposure'
+    variableAttribute: continuous
+    variableUnit: five-day units
+    variableDescription: Five-Day Units of Current-Month Extreme Humid Heat. \(H_{gmy} = D_{gmy}^{26}/5\). A one-unit coefficient
+      represents five additional extreme humid-heat days in the matched month.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  monthly_humid_heat_share:
+    variableNameInDataset: monthly_humid_heat_share
+    variableNameInArticle: ' Monthly Humid-Heat Share'
+    variableAttribute: continuous
+    variableUnit: proportion (0-1)
+    variableDescription: Share of Observed Days with Extreme Humid Heat. \(Share_{gmy}^{26} = D_{gmy}^{26}/DaysObserved_{gmy}\).
+      Divide the monthly threshold count by valid observed climate days.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  mean_maximum_wet_bulb_temperature:
+    variableNameInDataset: wet_bulb_max_mean_c
+    variableNameInArticle: ' Mean Maximum Wet-Bulb Temperature'
+    variableAttribute: continuous
+    variableUnit: degrees Celsius
+    variableDescription: Monthly Mean of Daily Maximum Wet-Bulb Temperature. \(MeanWB_{gmy} = DaysObserved_{gmy}^{-1}\sum_d
+      WBmax_{gmyd}\). Retain in degrees Celsius.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  two_month_cumulative_extreme_humid_heat_days:
+    variableNameInDataset: wb26_current_lag_total_days
+    variableNameInArticle: ' Two-Month Cumulative Extreme Humid-Heat Days'
+    variableAttribute: count
+    variableUnit: days per two months
+    variableDescription: Current-Plus-Previous-Month Extreme Humid-Heat Days. \(CumD_{gmy}^{26} = D_{gmy}^{26} + D_{g,m-1,y}^{26}\).
+      Sum threshold-day counts across the matched and immediately preceding months when both are observed.
+    variableSource: climate_reanalysis
+    observationNumber: 3114
+  five_day_cumulative_humid_heat_exposure:
+    variableNameInDataset: wb26_current_lag_total_5days
+    variableNameInArticle: ' Five-Day Cumulative Humid-Heat Exposure'
+    variableAttribute: continuous
+    variableUnit: five-day units per two months
+    variableDescription: Five-Day Units of Two-Month Cumulative Extreme Humid Heat. \(CumH_{gmy} = CumD_{gmy}^{26}/5\). A
+      one-unit coefficient represents five additional threshold days across the two-month window.
+    variableSource: climate_reanalysis
+    observationNumber: 3114
+  two_month_average_maximum_wet_bulb_temperature:
+    variableNameInDataset: wbmean_current_lag_average_1c
+    variableNameInArticle: ' Two-Month Average Maximum Wet-Bulb Temperature'
+    variableAttribute: continuous
+    variableUnit: degrees Celsius
+    variableDescription: Average of Current- and Previous-Month Mean Maximum Wet-Bulb Temperature. \(CumMeanWB_{gmy} = (MeanWB_{gmy}
+      + MeanWB_{g,m-1,y})/2\). Retain in degrees Celsius and use as the continuous replication of the cumulative threshold
+      result.
+    variableSource: climate_reanalysis
+    observationNumber: 3114
+  severe_humid_heat_days:
+    variableNameInDataset: days_wbmax_ge_28c
+    variableNameInArticle: ' Severe Humid-Heat Days'
+    variableAttribute: count
+    variableUnit: days per month
+    variableDescription: Monthly Days with Maximum Wet-Bulb Temperature at Least 28 C. \(D_{gmy}^{28} = \sum_d 1(WBmax_{gmyd}
+      \ge 28)\). Use only as a sparse-threshold sensitivity check.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  extreme_dry_heat_days:
+    variableNameInDataset: days_tmax_ge_35c
+    variableNameInArticle: ' Extreme Dry-Heat Days'
+    variableAttribute: count
+    variableUnit: days per month
+    variableDescription: Monthly Days with Maximum Air Temperature at Least 35 C. \(D_{gmy}^{35T} = \sum_d 1(Tmax_{gmyd} \ge
+      35)\). Scale by five days when compared with the primary exposure.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  mean_maximum_air_temperature:
+    variableNameInDataset: temperature_2m_max_mean_c
+    variableNameInArticle: ' Mean Maximum Air Temperature'
+    variableAttribute: continuous
+    variableUnit: degrees Celsius
+    variableDescription: Monthly Mean of Daily Maximum Air Temperature. \(MeanT_{gmy} = DaysObserved_{gmy}^{-1}\sum_d Tmax_{gmyd}\).
+      Retain in degrees Celsius and use only as a dry-heat specificity comparison.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  two_month_cumulative_extreme_dry_heat_days:
+    variableNameInDataset: tmax35_current_lag_total_days
+    variableNameInArticle: ' Two-Month Cumulative Extreme Dry-Heat Days'
+    variableAttribute: count
+    variableUnit: days per two months
+    variableDescription: Current-Plus-Previous-Month Extreme Dry-Heat Days. \(CumD_{gmy}^{35T} = D_{gmy}^{35T} + D_{g,m-1,y}^{35T}\).
+      Sum dry-heat threshold-day counts over the same two-month window as the primary humid-heat exposure.
+    variableSource: climate_reanalysis
+    observationNumber: 3114
+  two_month_average_maximum_air_temperature:
+    variableNameInDataset: tmax_current_lag_average_1c
+    variableNameInArticle: ' Two-Month Average Maximum Air Temperature'
+    variableAttribute: continuous
+    variableUnit: degrees Celsius
+    variableDescription: Average of Current- and Previous-Month Mean Maximum Air Temperature. \(CumMeanT_{gmy} = (MeanT_{gmy}
+      + MeanT_{g,m-1,y})/2\). Retain in degrees Celsius and use the same two-month window as the continuous humid-heat exposure.
+    variableSource: climate_reanalysis
+    observationNumber: 3114
+  mean_maximum_apparent_temperature:
+    variableNameInDataset: apparent_temperature_max_mean_c
+    variableNameInArticle: ' Mean Maximum Apparent Temperature'
+    variableAttribute: continuous
+    variableUnit: degrees Celsius
+    variableDescription: Monthly Mean of Daily Maximum Apparent Temperature. \(AppTemp_{gmy} = DaysObserved_{gmy}^{-1}\sum_d
+      AppTempMax_{gmyd}\). Retain in degrees Celsius.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  monthly_rainfall:
+    variableNameInDataset: precipitation_month_sum_mm
+    variableNameInArticle: ' Monthly Rainfall'
+    variableAttribute: continuous
+    variableUnit: millimeters per month
+    variableDescription: Monthly Precipitation Total. \(Rain_{gmy} = \sum_d Precipitation_{gmyd}\). Express in 100 mm units
+      in regression models.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  previous_month_humid_heat_exposure:
+    variableNameInDataset: lag_wb26_5days
+    variableNameInArticle: ' Previous-Month Humid-Heat Exposure'
+    variableAttribute: continuous
+    variableUnit: five-day units
+    variableDescription: Lagged Five-Day Humid-Heat Exposure. \(H_{g,m-1,y}\). Match the immediately preceding calendar month
+      where available.
+    variableSource: climate_reanalysis
+    observationNumber: 3114
+  future_month_humid_heat_exposure:
+    variableNameInDataset: lead_wb26_5days
+    variableNameInArticle: ' Future-Month Humid-Heat Exposure'
+    variableAttribute: continuous
+    variableUnit: five-day units
+    variableDescription: Lead Five-Day Humid-Heat Exposure. \(H_{g,m+1,y}\). Match the immediately following calendar month;
+      never interpret as treatment.
+    variableSource: climate_reanalysis
+    observationNumber: 166214
+  previous_month_mean_maximum_wet_bulb_temperature:
+    variableNameInDataset: lag_wbmean_1c
+    variableNameInArticle: ' Previous-Month Mean Maximum Wet-Bulb Temperature'
+    variableAttribute: continuous
+    variableUnit: degrees Celsius
+    variableDescription: Lagged Monthly Mean Maximum Wet-Bulb Temperature. \(MeanWB_{g,m-1,y}\). Match the immediately preceding
+      calendar month where available.
+    variableSource: climate_reanalysis
+    observationNumber: 3114
+  future_month_mean_maximum_wet_bulb_temperature:
+    variableNameInDataset: lead_wbmean_1c
+    variableNameInArticle: ' Future-Month Mean Maximum Wet-Bulb Temperature'
+    variableAttribute: continuous
+    variableUnit: degrees Celsius
+    variableDescription: Lead Monthly Mean Maximum Wet-Bulb Temperature. \(MeanWB_{g,m+1,y}\). Match the immediately following
+      calendar month; never interpret as treatment.
+    variableSource: climate_reanalysis
+    observationNumber: 166214
+  age:
+    variableNameInDataset: age
+    variableNameInArticle: ' Age'
+    variableAttribute: count
+    variableUnit: completed years
+    variableDescription: Age in Completed Years. \(Age_i \in [15,64]\). Restrict the analytical population to ages 15-64.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  age_squared:
+    variableNameInDataset: age_squared
+    variableNameInArticle: ' Age Squared'
+    variableAttribute: continuous
+    variableUnit: years squared
+    variableDescription: Squared Age. \(Age_i^2\). Square Age after the working-age restriction.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  female:
+    variableNameInDataset: female
+    variableNameInArticle: ' Female'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Female Indicator. \(Female_i = 1\) for the harmonized female category. Missing or nonstandard sex
+      codes remain missing.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  rural:
+    variableNameInDataset: rural
+    variableNameInArticle: ' Rural'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Rural Residence Indicator. \(Rural_i = 1\) for the harmonized rural category. Missing or nonstandard
+      residence codes remain missing.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  low_education:
+    variableNameInDataset: low_education
+    variableNameInArticle: ' Low Education'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: None, Preschool, or Primary Education Indicator. \(LowEdu_i = 1\) for harmonized levels 0-2. Compare
+      with lower-secondary education or above.
+    variableSource: cses_harmonized
+    observationNumber: 154208
+  older_worker:
+    variableNameInDataset: older_worker
+    variableNameInArticle: ' Older Worker'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Age 50-64 Indicator. \(Older_i = 1(Age_i \ge 50)\). Compare ages 50-64 with ages 15-49.
+    variableSource: cses_harmonized
+    observationNumber: 179217
+  agricultural_occupation_candidate:
+    variableNameInDataset: agriculture_occupation_candidate
+    variableNameInArticle: ' Agricultural Occupation Candidate'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Agricultural Major-Group Indicator. \(Agric_i = 1\) when the valid three-digit occupation code begins
+      with 6. Use among current workers in waves with occupation data; label as a conservative candidate rather than a validated
+      exposure score.
+    variableSource: cses_harmonized
+    observationNumber: 136722
+  household_member_count:
+    variableNameInDataset: household_member_count
+    variableNameInArticle: ' Household Member Count'
+    variableAttribute: count
+    variableUnit: persons
+    variableDescription: Number of Household Members. \(N_h\). Use the harmonized household composition count.
+    variableSource: cses_harmonized
+    observationNumber: 59390
+  persons_per_room:
+    variableNameInDataset: persons_per_room
+    variableNameInArticle: ' Persons per Room'
+    variableAttribute: continuous
+    variableUnit: persons per room
+    variableDescription: Household Crowding Ratio. \(Crowding_h = N_h/Rooms_h\). Require positive Rooms Used; construct once
+      per household-wave.
+    variableSource: cses_harmonized
+    observationNumber: 59390
+  high_household_crowding:
+    variableNameInDataset: high_crowding
+    variableNameInArticle: ' High Household Crowding'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Above-Wave-Median Crowding Indicator. \(HighCrowding_h = 1(Crowding_h > Median_y(Crowding))\). Calculate
+      the median on unique household-wave records and merge to people.
+    variableSource: cses_harmonized
+    observationNumber: 59390
+  floor_area_per_capita:
+    variableNameInDataset: floor_area_per_capita
+    variableNameInArticle: ' Floor Area per Capita'
+    variableAttribute: continuous
+    variableUnit: square meters per person
+    variableDescription: Dwelling Floor Area per Household Member. \(AreaPC_h = FloorArea_h/N_h\). Require positive floor
+      area and household member count; winsorize only in a prespecified sensitivity check.
+    variableSource: cses_harmonized
+    observationNumber: 59268
+  positive_electricity_spending:
+    variableNameInDataset: electricity_spending_positive
+    variableNameInArticle: ' Positive Electricity Spending'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Positive Monthly Electricity Expenditure Indicator. \(ElecPositive_h = 1(ElecExp_h > 0)\). Treat
+      as a resource or use proxy, not verified electricity or cooling access.
+    variableSource: cses_harmonized
+    observationNumber: 59389
+  log_electricity_expenditure:
+    variableNameInDataset: log_electricity_expenditure
+    variableNameInArticle: ' Log Electricity Expenditure'
+    variableAttribute: continuous
+    variableUnit: log(1 + nominal monthly riel)
+    variableDescription: Log Monthly Electricity Expenditure. \(LogElec_h = \log(1 + ElecExp_h)\). Use nonnegative nominal
+      expenditure on unique household-wave records.
+    variableSource: cses_harmonized
+    observationNumber: 59389
+  log_water_expenditure:
+    variableNameInDataset: log_water_expenditure
+    variableNameInArticle: ' Log Water Expenditure'
+    variableAttribute: continuous
+    variableUnit: log(1 + nominal monthly riel)
+    variableDescription: Log Monthly Water Charges. \(LogWater_h = \log(1 + WaterExp_h)\). Use nonnegative nominal charges
+      on unique household-wave records.
+    variableSource: cses_harmonized
+    observationNumber: 59372
+  toilet_facility:
+    variableNameInDataset: has_toilet_facility
+    variableNameInArticle: ' Toilet Facility'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Household Toilet-Facility Indicator. \(Toilet_h = 1\) when a toilet facility is reported. Use the
+      harmonized binary indicator.
+    variableSource: cses_harmonized
+    observationNumber: 59390
+  drinking_water_treatment:
+    variableNameInDataset: treats_drinking_water
+    variableNameInArticle: ' Drinking Water Treatment'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Household Drinking-Water Treatment Indicator. \(WaterTreat_h = 1\) when drinking water is always
+      or sometimes treated. Use the harmonized binary indicator.
+    variableSource: cses_harmonized
+    observationNumber: 59390
+  coastal_climate_fallback:
+    variableNameInDataset: temperature_location_fallback_used
+    variableNameInArticle: ' Coastal Climate Fallback'
+    variableAttribute: boolean
+    variableUnit: indicator (0/1)
+    variableDescription: Climate Location Fallback Indicator. \(Fallback_g = 1\) when the district centroid required a land
+      representative-point substitute. Exclude flagged rows in the coastal-location sensitivity check.
+    variableSource: climate_reanalysis
+    observationNumber: 3325
+  district_threshold_humid_heat_hazard:
+    variableNameInDataset: district_threshold_humid_heat_hazard
+    variableNameInArticle: ' District Threshold Humid-Heat Hazard'
+    variableAttribute: continuous
+    variableUnit: standardized index
+    variableDescription: Wave-Balanced Wave-Month-Standardized District Cumulative Threshold Humid-Heat Hazard. \(H_g^T =
+      |W_g|^{-1}\sum_{y \in W_g}|C_{gy}|^{-1}\sum_{c \in C_{gy}}(CumD_{gc}^{26}-\overline{CumD}_{c}^{26})/s_c(CumD^{26})\).
+      Sum current and preceding-month threshold days, standardize across Districts within Survey Wave and Survey Month, average
+      within each District and Survey Wave, and then average observed Survey Waves equally by District.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  district_continuous_humid_heat_hazard:
+    variableNameInDataset: district_continuous_humid_heat_hazard
+    variableNameInArticle: ' District Continuous Humid-Heat Hazard'
+    variableAttribute: continuous
+    variableUnit: standardized index
+    variableDescription: Wave-Balanced Wave-Month-Standardized District Continuous Cumulative Humid-Heat Hazard. \(H_g^C =
+      |W_g|^{-1}\sum_{y \in W_g}|C_{gy}|^{-1}\sum_{c \in C_{gy}}(CumMeanWB_{gc}-\overline{CumMeanWB}_{c})/s_c(CumMeanWB)\).
+      Average current and preceding-month maximum wet-bulb means, standardize across Districts within Survey Wave and Survey
+      Month, average within each District and Survey Wave, and then average observed Survey Waves equally by District.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  weighted_working_age_scale:
+    variableNameInDataset: weighted_working_age_scale
+    variableNameInArticle: ' Weighted Working-Age Scale'
+    variableAttribute: continuous
+    variableUnit: national proportion (0-1)
+    variableDescription: Wave-Balanced Relative Working-Age Population Scale. \(E_g = \widetilde{E}_g/\sum_h\widetilde{E}_h\),
+      where \(\widetilde{E}_g = |W_g|^{-1}\sum_{y \in W_g}\sum_{i \in g,y}w_i/\sum_{i \in y}w_i\). Calculate each District
+      share of positive working-age Person Weight within Survey Wave, average across observed waves, and renormalize across
+      Districts.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  district_low_education_share:
+    variableNameInDataset: district_low_education_share
+    variableNameInArticle: ' District Low-Education Share'
+    variableAttribute: continuous
+    variableUnit: weighted proportion (0-1)
+    variableDescription: Wave-Balanced Survey-Weighted District Low-Education Share. \(V_g = |W_g^E|^{-1}\sum_{y \in W_g^E}\sum_{i
+      \in g,y}w_iLowEdu_i/\sum_{i \in g,y}w_i\). Calculate the weighted Low Education share within each District and Survey
+      Wave, then average across waves with valid education.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  district_threshold_humid_heat_burden:
+    variableNameInDataset: district_threshold_humid_heat_burden
+    variableNameInArticle: ' District Threshold Humid-Heat Burden'
+    variableAttribute: continuous
+    variableUnit: weighted cumulative-heat burden
+    variableDescription: Wave-Balanced Working-Age-Weighted District Threshold Humid-Heat Burden. \(B_g^T=E_g|W_g|^{-1}\sum_{y
+      \in W_g}|C_{gy}|^{-1}\sum_{c \in C_{gy}}CumD_{gc}^{26}\). Average Two-Month Cumulative Extreme Humid-Heat Days within
+      each District and Survey Wave, average observed Survey Waves equally by District, multiply by Weighted Working-Age Scale,
+      and use its percentile rank for A2 and A5.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  district_continuous_humid_heat_burden:
+    variableNameInDataset: district_continuous_humid_heat_burden
+    variableNameInArticle: ' District Continuous Humid-Heat Burden'
+    variableAttribute: continuous
+    variableUnit: weighted wet-bulb-excess burden
+    variableDescription: Wave-Balanced Working-Age-Weighted District Continuous Excess Humid-Heat Burden. \(B_g^C=E_g|W_g|^{-1}\sum_{y
+      \in W_g}|C_{gy}|^{-1}\sum_{c \in C_{gy}}\max(CumMeanWB_{gc}-26,0)\). Calculate nonnegative Two-Month Average Maximum
+      Wet-Bulb Temperature excess above 26 C in each District-wave-month cell, average within each District and Survey Wave,
+      average observed Survey Waves equally by District, multiply by Weighted Working-Age Scale, and use its percentile rank
+      only in exposure-definition sensitivities.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  district_vulnerable_worker_scale:
+    variableNameInDataset: district_vulnerable_worker_scale
+    variableNameInArticle: ' District Vulnerable-Worker Scale'
+    variableAttribute: continuous
+    variableUnit: relative population scale
+    variableDescription: Relative Low-Education Working-Age Scale. \(L_g=E_gV_g\). Multiply Weighted Working-Age Scale by
+      District Low-Education Share; use its percentile rank for A3 and A5.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  education_effective_sample_size:
+    variableNameInDataset: education_effective_sample_size
+    variableNameInArticle: ' Education Effective Sample Size'
+    variableAttribute: continuous
+    variableUnit: effective observations
+    variableDescription: Kish Effective Sample Size for District Education Share. \(n_g^{eff} = (\sum_{i \in g}w_i)^2/\sum_{i
+      \in g}w_i^2\). Calculate from positive Person Weight among observations with valid harmonized education.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  data_support_grade:
+    variableNameInDataset: data_support_grade
+    variableNameInArticle: ' Data Support Grade'
+    variableAttribute: categorical
+    variableUnit: High, Medium, or Limited
+    variableDescription: District Impact-Assessment Data Support Grade. \(Support_g \in \{High, Medium, Limited\}\). High
+      requires at least four contributing heat waves and Education Effective Sample Size of at least 100; Limited denotes
+      fewer than three heat waves or effective sample size below 50; all remaining Districts are Medium. Keep this grade outside
+      the substantive priority score.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  district_priority_score:
+    variableNameInDataset: district_priority_score
+    variableNameInArticle: ' District Priority Score'
+    variableAttribute: continuous
+    variableUnit: percentile score (0-1)
+    variableDescription: Scenario-Specific District Occupational Humid-Heat Protection Priority Score. \(P_g(w)=w_BR(B_g)+w_ER(E_g)+w_LR(L_g)\),
+      with \(w_B+w_E+w_L=1\) and nonnegative weights. Transform humid-heat burden, working-age scale, and vulnerable-worker
+      scale to percentile ranks and combine them under the prespecified pure, equal, and emphasis weight scenarios. Do not
+      include Data Support Grade in the score.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  priority_inclusion_frequency:
+    variableNameInDataset: priority_inclusion_frequency
+    variableNameInArticle: ' Priority Inclusion Frequency'
+    variableAttribute: continuous
+    variableUnit: scenario proportion (0-1)
+    variableDescription: Structural District Priority-List Inclusion Frequency. \(\pi_g^S(k)=(N_g^S)^{-1}\sum_{r:g \in U_r}1\{g
+      \in A_r(k)\}\). Calculate the share of the 420 prespecified structural scenarios in which an eligible District enters
+      capacity tier \(k\); vary burden definition, component weights, full versus leave-one-wave-out construction, and eligibility
+      rule.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  wave_bootstrap_inclusion_frequency:
+    variableNameInDataset: wave_bootstrap_inclusion_frequency
+    variableNameInArticle: ' Wave-Bootstrap Inclusion Frequency'
+    variableAttribute: continuous
+    variableUnit: bootstrap proportion (0-1)
+    variableDescription: Survey-Wave-Composition District Priority-List Inclusion Frequency. \(\pi_g^W(k)=(N_g^W)^{-1}\sum_{j:g
+      \in U_j}1\{g \in A_{5j}^T(k)\}\). Across 1,000 seeded Survey Wave block-bootstrap replicates, fix District Threshold
+      Humid-Heat Burden and equal-weight A5, resample only Survey Waves, and report this frequency separately from structural
+      Priority Inclusion Frequency.
+    variableSource: district_decision_outputs
+    observationNumber: 197
+  humid_heat_coverage:
+    variableNameInDataset: humid_heat_coverage
+    variableNameInArticle: ' Humid-Heat Coverage'
+    variableAttribute: continuous
+    variableUnit: national burden proportion (0-1)
+    variableDescription: Selected-District Weighted Cumulative Humid-Heat Coverage. \(Coverage_H(A)=\sum_{g \in A}E_g\overline{CumD}_g^{26}/\sum_gE_g\overline{CumD}_g^{26}\).
+      Report the share of national working-age-weighted cumulative humid-heat burden located in selected Districts.
+    variableSource: district_decision_outputs
+    observationNumber: 36
+  vulnerable_worker_coverage:
+    variableNameInDataset: vulnerable_worker_coverage
+    variableNameInArticle: ' Vulnerable-Worker Coverage'
+    variableAttribute: continuous
+    variableUnit: national vulnerable-worker proportion (0-1)
+    variableDescription: Selected-District Low-Education Working-Age Coverage. \(Coverage_V(A)=\sum_{g \in A}E_gV_g/\sum_gE_gV_g\).
+      Report the share of the national relative low-education working-age scale located in selected Districts.
+    variableSource: district_decision_outputs
+    observationNumber: 36
+  working_age_coverage:
+    variableNameInDataset: working_age_coverage
+    variableNameInArticle: ' Working-Age Coverage'
+    variableAttribute: continuous
+    variableUnit: national working-age proportion (0-1)
+    variableDescription: Selected-District Relative Working-Age Coverage. \(Coverage_E(A)=\sum_{g \in A}E_g\). Sum Weighted
+      Working-Age Scale across selected Districts.
+    variableSource: district_decision_outputs
+    observationNumber: 36
+  targeting_strategy:
+    variableNameInDataset: strategy
+    variableNameInArticle: ' Targeting Strategy'
+    variableAttribute: categorical
+    variableUnit: A0-A5 allocation rule
+    variableDescription: Occupational Humid-Heat Protection Targeting Strategy. \(s \in \{A0,A1,A2,A3,A4,A5\}\). Prespecify
+      no additional targeting, uniform national provision, humid-heat-burden-first, vulnerable-worker-first, worker-scale-first,
+      and combined targeting. These are alternative allocation rules for one common protection package.
+    variableSource: district_decision_outputs
+    observationNumber: 36
+  capacity_level:
+    variableNameInDataset: capacity_target
+    variableNameInArticle: ' Capacity Level'
+    variableAttribute: categorical
+    variableUnit: district count or worker-share target
+    variableDescription: Occupational Humid-Heat Protection Implementation Capacity Level. \(k \in \{20,40,60\}\) Districts
+      or \(q \in \{0.10,0.20,0.30\}\) of Weighted Working-Age Scale. Use District count as the primary capacity definition,
+      designate 40 Districts as the central map display, and use covered worker share as the required sensitivity definition.
+    variableSource: district_decision_outputs
+    observationNumber: 36
+figureDictionary:
+  fig_humid_heat_exposure_and_identifying_variation:
+    figureId: fig_humid_heat_exposure_and_identifying_variation
+    figurePath: data/results/figures/Figure_humid_heat_exposure_and_identifying_variation.png
+    figureCaption: Humid-heat exposure and identifying variation
+    figurePanelCount: 3
+    figureNote: 'Panel a compares the distributions of current-month and current-plus-previous-month WB26 threshold days. Panel b summarizes the two-month mean maximum wet-bulb temperature by survey wave. Panel c shows residual two-month cumulative WB26 days after district-by-calendar-month and survey-year effects.'
+    figureAim: Shows current and cumulative humid-heat distributions, wave coverage, and residual within-district-season variation
+      supporting the design.
+    figureExplanation: Current and cumulative humid heat are widespread across nine waves. The cumulative measure averages
+      23.7 days, while fixed-effect residualization leaves a 4.10-day standard deviation across 3,114 complete district-month
+      cells. This establishes empirical support, not causality.
+    figureSuitableSection: Appendix — Exposure measurement and identifying variation
+  fig_geography_of_cumulative_humid_heat_and_identifying_support:
+    figureId: fig_geography_of_cumulative_humid_heat_and_identifying_support
+    figurePath: data/results/figures/Figure_geography_of_cumulative_humid_heat_and_identifying_support.png
+    figureCaption: Geographic humid-heat burden and measurement support
+    figurePanelCount: 3
+    figureNote: 'Panel a maps mean cumulative WB26 threshold days across matched survey months. Panel b maps the number of survey waves contributing cumulative exposure. Panel c maps the within-fixed-effect standard deviation of cumulative WB26 days.'
+    figureAim: Maps district-average cumulative humid heat, contributing survey-wave coverage, and fixed-effect-residual exposure
+      variation to show where the month-level design has spatial support.
+    figureExplanation: The median district records about 24.1 cumulative threshold days. Seventy districts contribute all
+      nine waves, and all 197 districts retain positive residual exposure support. The maps identify geographic support without
+      resolving within-district exposure.
+    figureSuitableSection: Appendix — Geographic exposure and support
+  fig_timing_of_humid_heat_and_work_participation:
+    figureId: fig_timing_of_humid_heat_and_work_participation
+    figurePath: data/results/figures/Figure_timing_of_humid_heat_and_work_participation.png
+    figureCaption: Timing of humid heat and work participation
+    figurePanelCount: 2
+    figureNote: 'Panel a reports standardized current, previous, cumulative, and future humid-heat estimates with 95% confidence intervals for both exposure definitions. Panel b summarizes the corresponding standardized estimates and the number of confidence intervals below zero.'
+    figureAim: Uses a compact shared-scale coefficient display and evidence strip to compare current, preceding, cumulative,
+      and following-month associations under both wet-bulb definitions while visually prioritizing the cumulative contrast.
+    figureExplanation: On the common 154,901-person sample, only the two-month cumulative threshold and continuous contrasts
+      have confidence intervals wholly below zero. The pattern motivates the cumulative window, but lead estimates keep the
+      timing evidence suggestive rather than causal.
+    figureSuitableSection: Results — Timing and cumulative association
+  fig_cumulative_humid_heat_by_education:
+    figureId: fig_cumulative_humid_heat_by_education
+    figurePath: data/results/figures/Figure_cumulative_humid_heat_by_education.png
+    figureCaption: Education differences in cumulative humid-heat associations
+    figurePanelCount: 4
+    figureNote: 'Panel a reports education-group slopes and low-minus-higher interaction differences. Panel b shows leave-one-wave-out interaction stability. Panel c reports the frozen sensitivity checks. Panel d compares nominal p-value thresholds with family and global false-discovery-adjusted q-values.'
+    figureAim: Uses a compact four-panel evidence dashboard for education-group slopes, low-minus-higher interaction differences,
+      leave-one-wave-out stability, and the frozen sensitivity matrix under both cumulative exposure definitions.
+    figureExplanation: Low-education slopes are more adverse under both cumulative definitions. All nine leave-one-wave-out
+      interactions remain adverse; family q-values are 0.062 and 0.040, while global q-values are 0.210 and 0.154. The differences
+      remain exploratory.
+    figureSuitableSection: Results — Education-related vulnerability
+  fig_cumulative_estimate_credibility_checks:
+    figureId: fig_cumulative_estimate_credibility_checks
+    figurePath: data/results/figures/Figure_cumulative_estimate_credibility_checks.png
+    figureCaption: Credibility checks for cumulative humid-heat estimates
+    figurePanelCount: 2
+    figureNote: 'Panel a displays all frozen humid-heat, placebo, dry-heat, leave-one-wave-out, and robustness estimates with 95% confidence intervals. Panel b aligns each estimate with its exposure definition and specification attributes.'
+    figureAim: Uses a specification-curve-style coefficient display and model-attribute matrix to integrate humid-versus-dry
+      specificity, future placebos, leave-one-wave-out stability, sample restrictions, control choices, and alternative clustering.
+    figureExplanation: All 32 displayed frozen robustness estimates remain adverse across exposure definitions, samples, controls,
+      geography, and inference choices. Directional stability reduces fragility concerns but does not eliminate confounding
+      or the global multiplicity boundary.
+    figureSuitableSection: Results — Robustness and evidence boundaries
+  fig_spatial_clustering_of_cumulative_humid_heat_and_education_related_vulnerability:
+    figureId: fig_spatial_clustering_of_cumulative_humid_heat_and_education_related_vulnerability
+    figurePath: data/results/figures/Figure_spatial_clustering_of_cumulative_humid_heat_and_education_related_vulnerability.png
+    figureCaption: Spatial clustering of humid heat and vulnerability
+    figurePanelCount: 3
+    figureNote: 'Panel a reports global spatial autocorrelation in cumulative humid heat. Panel b maps statistically supported local cumulative humid-heat clusters. Panel c maps local heat-education co-location; its focal-district heat measure is compared with neighboring low-education shares.'
+    figureAim: Tests global and local spatial autocorrelation in wave-month-standardized cumulative humid heat and maps statistically
+      supported heat clusters and the co-location of high humid heat with a high weighted Low Education share.
+    figureExplanation: District humid heat is spatially clustered (Moran's I 0.401; permutation p 0.0001), with 13 local heat
+      clusters. Global neighboring heat-education co-location is unsupported (bivariate I -0.039; p 0.7696); 23 local overlays
+      remain descriptive.
+    figureSuitableSection: Results — Spatial patterning
+  fig_occupational_humid_heat_protection_impact_assessment_framework:
+    figureId: fig_occupational_humid_heat_protection_impact_assessment_framework
+    figurePath: data/results/figures/Figure_occupational_humid_heat_protection_impact_assessment_framework.png
+    figureCaption: Occupational humid-heat protection impact-assessment framework
+    figurePanelCount: 1
+    figureAim: Connects objective-aligned humid-heat burden, working-age reach, vulnerable-worker scale, policy-allocation
+      alternatives, District-count and worker-share capacity constraints, coverage consequences, and evidence uncertainty
+      without implying an estimated causal program effect or a preferred combined rule.
+    figureExplanation: The framework links exploratory labor evidence to a separate district allocation layer, defines A0-A5
+      for one common protection package, and separates policy objectives, capacity, consequences, and robustness. It makes
+      no causal program-effect claim.
+    figureSuitableSection: Methods — Impact-assessment framework
+  fig_from_district_conditions_to_robust_protection_priorities:
+    figureId: fig_from_district_conditions_to_robust_protection_priorities
+    figurePath: data/results/figures/Figure_from_district_conditions_to_robust_protection_priorities.png
+    figureCaption: District conditions and robust protection priorities
+    figurePanelCount: 6
+    figureNote: 'Panels a-c map threshold humid-heat burden, working-age scale, and vulnerable-worker scale. Panel d maps the equal-weight combined priority score. Panel e maps structural inclusion frequency at the 40-district capacity. Panel f reports the separate High, Medium, and Limited data-support grades.'
+    figureAim: Maps threshold humid-heat burden, working-age scale, vulnerable-worker scale, combined priority score, priority
+      inclusion frequency at the central 40-District capacity, and data-support grade to show how objective-aligned District
+      priorities are constructed and where they remain uncertain.
+    figureExplanation: Wave-balanced burden, worker reach, and vulnerable-worker scale form transparent district priorities.
+      At capacity 40, 26 districts form the stable core by attaining structural inclusion frequency of at least 0.80 and non-Limited
+      support; grades classify 169 High, 15 Medium, and 13 Limited districts.
+    figureSuitableSection: Results — District priorities and robustness
+  fig_coverage_equity_and_capacity_trade_offs_across_targeting_strategies:
+    figureId: fig_coverage_equity_and_capacity_trade_offs_across_targeting_strategies
+    figurePath: data/results/figures/Figure_coverage_equity_and_capacity_trade_offs_across_targeting_strategies.png
+    figureCaption: Targeting trade-offs across capacity levels
+    figurePanelCount: 4
+    figureNote: 'Panels a and b compare humid-heat and vulnerable-worker coverage across district-count capacities. Panel c shows the coverage-equity frontier, with marker shape indicating capacity and marker size indicating working-age coverage. Panel d reports the district counts required to meet matched working-age-share targets.'
+    figureAim: Compares humid-heat burden coverage, vulnerable-worker coverage, and working-age coverage across objective-aligned
+      targeting strategies and District-count capacities, shows the coverage-equity frontier, and reports the District counts
+      needed to reach matched worker-share targets.
+    figureExplanation: At 40 districts, combined A5 covers 0.419 of humid-heat burden, 0.360 of vulnerable-worker scale, and
+      0.391 of working-age scale. Objective-specific strategies lead their own criteria, while worker-share targets require
+      7, 18, and 29 A5 districts. No preference is imposed.
+    figureSuitableSection: Results — Strategy performance and trade-offs
+tableDictionary:
+  table_analytical_sample_and_year_month_linkage_by_survey_wave:
+    tableId: table_analytical_sample_and_year_month_linkage_by_survey_wave
+    tablePath: data/results/tables/Table_analytical_sample_and_year_month_linkage_by_survey_wave.xlsx
+    tableCaption: Sample linkage and survey-wave coverage
+    tableSheet: Sample and Linkage
+    tableAim: Documents year-month linkage, sample retention, geography, and weight availability in every wave.
+    tableExplanation: The workbook audits nine waves, 179,217 analytical person-wave rows, released year-month linkage, geography,
+      and positive weights. It fixes the denominator contract and documents that exact interview dates are unavailable.
+    tableSuitableSection: Methods — Data linkage and analytical sample
+  table_key_variable_coverage_by_survey_wave:
+    tableId: table_key_variable_coverage_by_survey_wave
+    tablePath: data/results/tables/Table_key_variable_coverage_by_survey_wave.xlsx
+    tableCaption: Key-variable coverage by survey wave
+    tableSheet: Variable Coverage
+    tableAim: Documents outcome, demographic, occupation, household-resource, and climate availability in every wave.
+    tableExplanation: Work participation is observed for 179,215 respondents, weekly hours for 136,364, wages for 74,509,
+      and education for 154,208. Wave-specific coverage makes outcome and modifier sample changes explicit.
+    tableSuitableSection: Appendix — Variable coverage
+  table_descriptive_statistics_of_the_analytical_sample:
+    tableId: table_descriptive_statistics_of_the_analytical_sample
+    tablePath: data/results/tables/Table_descriptive_statistics_of_the_analytical_sample.xlsx
+    tableCaption: Descriptive statistics of the analytical sample
+    tableSheet: Analytical Sample
+    tableAim: Summarizes weighted labor outcomes, demographics, and household resources without mixing in identification diagnostics.
+    tableExplanation: The weighted analytical sample has work participation of 0.822 and reports the distributions of outcomes,
+      exposures, controls, vulnerability measures, and household-resource proxies used in later models.
+    tableSuitableSection: Appendix — Descriptive statistics
+  table_identifying_variation_in_humid_heat_exposure:
+    tableId: table_identifying_variation_in_humid_heat_exposure
+    tablePath: data/results/tables/Table_identifying_variation_in_humid_heat_exposure.xlsx
+    tableCaption: Humid-heat exposure and identifying variation
+    tableSheet: Heat Identification
+    tableAim: Summarizes district-month exposure support and fixed-effect-residual humid-heat variation used by the design.
+    tableExplanation: Across 3,325 current-exposure and 3,114 complete cumulative cells, cumulative threshold exposure averages
+      23.7 days and retains a 4.10-day residual standard deviation after District Calendar Month and Survey Year effects.
+    tableSuitableSection: Appendix — Exposure support
+  table_main_cumulative_humid_heat_and_work_participation_estimates:
+    tableId: table_main_cumulative_humid_heat_and_work_participation_estimates
+    tablePath: data/results/tables/Table_main_cumulative_humid_heat_and_work_participation_estimates.xlsx
+    tableCaption: Main cumulative humid-heat estimates
+    tableSheet: Main Estimates
+    tableAim: Reports the frozen threshold and continuous cumulative estimates with raw and standardized magnitudes.
+    tableExplanation: Five additional cumulative threshold days correspond to -0.522 percentage points in work participation
+      (95% CI -1.011 to -0.034). One additional degree Celsius corresponds to -2.114 points (95% CI -4.003 to -0.224). Both
+      global q-values are 0.210.
+    tableSuitableSection: Results — Main cumulative association
+  table_timing_placebo_and_dry_heat_comparisons:
+    tableId: table_timing_placebo_and_dry_heat_comparisons
+    tablePath: data/results/tables/Table_timing_placebo_and_dry_heat_comparisons.xlsx
+    tableCaption: Timing placebo and dry-heat comparisons
+    tableSheet: Comparisons
+    tableAim: Reports current, preceding, cumulative, following-month, humid-heat, and dry-heat estimates on comparable samples.
+    tableExplanation: Current, lagged, cumulative, future, wet-bulb, and dry-heat contrasts are estimated on comparable samples.
+      The cumulative humid-heat pattern is most coherent, but lead and dry-heat results prevent definitive causal timing or
+      specificity claims.
+    tableSuitableSection: Appendix — Timing and specificity
+  table_education_differences_in_cumulative_humid_heat_associations:
+    tableId: table_education_differences_in_cumulative_humid_heat_associations
+    tablePath: data/results/tables/Table_education_differences_in_cumulative_humid_heat_associations.xlsx
+    tableCaption: Education differences in cumulative humid-heat associations
+    tableSheet: Education Differences
+    tableAim: Reports both education-group slopes and the low-education interaction under both cumulative exposure definitions.
+    tableExplanation: On 144,539 common-sample observations, low education adds -0.170 percentage points per five threshold
+      days and -0.523 points per degree Celsius. Family q-values are 0.062 and 0.040; global q-values are 0.210 and 0.154.
+    tableSuitableSection: Results — Education-related vulnerability
+  table_education_difference_stability_and_sensitivity_tests:
+    tableId: table_education_difference_stability_and_sensitivity_tests
+    tablePath: data/results/tables/Table_education_difference_stability_and_sensitivity_tests.xlsx
+    tableCaption: Education-difference stability and sensitivities
+    tableSheet: Education Stability
+    tableAim: Reports both cumulative heat-by-low-education interactions under leave-one-wave-out, timing-risk, balanced-district,
+      coastal-fallback, common-sample, and alternative-clustering checks.
+    tableExplanation: Both cumulative education interactions remain adverse in all nine leave-one-wave-out estimates and under
+      prespecified sample, geography, control, and inference sensitivities. Stability supports prioritizing validation, not
+      a causal schooling mechanism.
+    tableSuitableSection: Appendix — Education robustness
+  table_cumulative_estimate_stability_and_sensitivity_tests:
+    tableId: table_cumulative_estimate_stability_and_sensitivity_tests
+    tablePath: data/results/tables/Table_cumulative_estimate_stability_and_sensitivity_tests.xlsx
+    tableCaption: Cumulative-estimate stability and sensitivities
+    tableSheet: Stability Tests
+    tableAim: Reports cumulative leave-one-wave-out, timing-risk, common-sample, balanced-district, geographic, control, and
+      clustering checks.
+    tableExplanation: Frozen cumulative estimates remain adverse across leave-one-wave-out, sample, geographic, control, and
+      clustering variants. The audit preserves every favorable and unfavorable estimate and treats robustness as a fragility
+      check rather than causal identification.
+    tableSuitableSection: Appendix — Main-estimate robustness
+  table_boundary_outcomes_and_unsupported_modifiers:
+    tableId: table_boundary_outcomes_and_unsupported_modifiers
+    tablePath: data/results/tables/Table_boundary_outcomes_and_unsupported_modifiers.xlsx
+    tableCaption: Boundary outcomes and unsupported modifiers
+    tableSheet: Secondary Outcomes
+    tableAim: Presents two manuscript-facing tables in one workbook. Secondary Outcomes summarizes hours, wage, and outcome-observation
+      results; Modifier Boundaries summarizes sex, age, rural, occupation, crowding, and electricity contrasts. The complete
+      24-test record remains in Estimate Audit.
+    tableExplanation: Both seven-column displays pair WB26 and mean-WBmax estimates, confidence intervals, global adjusted values,
+      and concise evidence boundaries. The results are mixed or imprecise and do not establish absence of effects or a unique
+      occupational mechanism.
+    tableSuitableSection: Appendix — Boundary outcomes and mechanisms
+  table_exploratory_specification_and_multiplicity_audit:
+    tableId: table_exploratory_specification_and_multiplicity_audit
+    tablePath: data/results/tables/Table_exploratory_specification_and_multiplicity_audit.xlsx
+    tableCaption: Exploratory specifications and multiplicity audit
+    tableSheet: Timing & Average
+    tableAim: Contains three manuscript-facing tables for timing and average effects, modifiers and occupation, and a compact nine-row
+      leave-one-wave-out stability comparison; the 16 outcomes-and-selection records remain in Full Audit because Secondary Outcomes
+      already presents them concisely.
+    tableExplanation: 'The three displays separate 20 timing and average-effect tests, 28 modifier and occupation tests, and 18
+      leave-one-wave-out diagnostics, paired by omitted wave in nine display rows. Full Audit retains all 82 records and 43 technical
+      fields, including the 16 outcomes-and-selection rows. Of the 64 tests eligible for false-discovery adjustment, none survives
+      global 10% control; the stability diagnostics remain outside BH.'
+    tableSuitableSection: Appendix — Multiplicity audit
+  table_proposed_occupational_humid_heat_protection_alternatives_and_assessment_criteria:
+    tableId: table_proposed_occupational_humid_heat_protection_alternatives_and_assessment_criteria
+    tablePath: data/results/tables/Table_proposed_occupational_humid_heat_protection_alternatives_and_assessment_criteria.xlsx
+    tableCaption: Protection alternatives and assessment criteria
+    tableSheet: Alternatives
+    tableAim: Summarizes the A0-A5 selection basis, optimized objective, common capacity contract, and evidence boundary in a
+      concise academic display while retaining complete definitions and assumptions in a specification-audit sheet.
+    tableExplanation: A0-A5 define reference, objective-specific, and combined allocation rules for one common occupational
+      protection package. The five-column display is manuscript-facing; the complete nine-column policy contract remains auditable
+      without claiming observed program effects.
+    tableSuitableSection: Methods — Policy alternatives and criteria
+  table_targeting_strategy_performance_across_capacity_levels:
+    tableId: table_targeting_strategy_performance_across_capacity_levels
+    tablePath: data/results/tables/Table_targeting_strategy_performance_across_capacity_levels.xlsx
+    tableCaption: Targeting performance across capacity levels
+    tableSheet: Central Capacity
+    tableAim: Contains two manuscript-facing tables—Central Capacity compares A0-A5 at 40 Districts, and Worker-Share Capacity
+      reports the 10%, 20%, and 30% working-age-share sensitivity—while retaining the full District-count and scenario records
+      in supporting audit sheets.
+    tableExplanation: At 40 districts, A2, A3, and A4 lead humid-heat, vulnerable-worker, and working-age coverage respectively;
+      A5 provides 0.419, 0.360, and 0.391. The two Stargazer-style displays make the central trade-off and worker-share capacity
+      sensitivity legible; District Capacity Audit and Scenario Audit preserve the complete frontier without declaring one strategy
+      universally superior.
+    tableSuitableSection: Results — Targeting performance
+  table_district_priority_rankings_and_decision_robustness:
+    tableId: table_district_priority_rankings_and_decision_robustness
+    tablePath: data/results/tables/Table_district_priority_rankings_and_decision_robustness.xlsx
+    tableCaption: District priorities and decision robustness
+    tableSheet: District Rankings
+    tableAim: Reports the complete objective-aligned District priority list, combined score, capacity-specific inclusion frequency,
+      worker-share selections, and data-support grade so stable core, borderline, and evidence-limited Districts remain auditable.
+    tableExplanation: The workbook reports all 197 district ranks, 420 structural scenarios, 1,000 wave-bootstrap replicates,
+      capacity-specific inclusion frequencies, and support grades. At capacity 40, 26 districts attain structural inclusion
+      frequency of at least 0.80 and non-Limited support; grades classify 169 High, 15 Medium, and 13 Limited districts.
+    tableSuitableSection: Appendix — District rankings and robustness
+analysisStructureBrief:
+  overview: A database-first, read-only design links nine CSES repeated cross-sections to district-month climate. It combines
+    an exploratory person-level humid-heat and work-participation pathway with a separate wave-balanced district allocation
+    assessment. The latter compares where one common occupational protection package could be targeted under constrained capacity,
+    while keeping causal program benefits, costs, and a preferred social-welfare rule outside the evidence.
+  levels:
+  - levelName: 1. Sample and linkage audit
+    levelAim: Freeze population, temporal match, geography, and weights before analysis.
+    inputs:
+    - Survey Wave
+    - Survey Year
+    - Survey Month
+    - District
+    - Person Weight
+    - Work Participation
+    modelOrMethod: Audit unique respondent-wave and household-wave keys, ages 15-64, valid released year-month linkage, current-district
+      coverage, and positive sampling weights for each wave.
+    outputs:
+    - Analytical Sample and Year-Month Linkage by Survey Wave
+    - Key Variable Coverage by Survey Wave
+    - Descriptive Statistics of the Analytical Sample
+    interpretation: Establishes the auditable repeated-cross-section denominator. Nominal wave year and released month are
+      the finest defensible time keys; interview day cannot be recovered.
+  - levelName: 2. Exposure and spatial-support audit
+    levelAim: Establish raw, residual, temporal, and geographic humid-heat support.
+    inputs:
+    - District
+    - Survey Wave
+    - Survey Month
+    - Two-Month Cumulative Extreme Humid-Heat Days
+    - Two-Month Average Maximum Wet-Bulb Temperature
+    - Low Education
+    - Person Weight
+    modelOrMethod: Summarize cumulative exposure and residualize it on District Calendar Month and Survey Year effects. Aggregate
+      wave-month-standardized heat and weighted low education to district; compute global and local Moran diagnostics using
+      seeded permutation inference.
+    outputs:
+    - Humid-Heat Exposure and Identifying Variation
+    - Geography of Cumulative Humid Heat and Identifying Support
+    - Identifying Variation in Humid-Heat Exposure
+    - Spatial Clustering of Cumulative Humid Heat and Education-Related Vulnerability
+    interpretation: Supports measurable cumulative exposure and global heat clustering. It does not establish exogeneity,
+      person-specific exposure, or global heat-education co-location.
+  - levelName: 3. Exploratory labor-impact pathway
+    levelAim: Estimate the cumulative humid-heat association with work participation.
+    inputs:
+    - Work Participation
+    - Five-Day Cumulative Humid-Heat Exposure
+    - Two-Month Average Maximum Wet-Bulb Temperature
+    - Monthly Rainfall
+    - Age
+    - Age Squared
+    - Female
+    - Rural
+    - Person Weight
+    - District Calendar Month
+    - Survey Year
+    modelOrMethod: Estimate Y_igmy = beta CumH_gmy + rho Rain_gmy + X_i'gamma + alpha_gm + tau_y + epsilon_igmy by weighted
+      linear probability models with District-clustered inference; compare timing, leads, dry heat, samples, controls, geography,
+      and clustering.
+    outputs:
+    - Timing of Humid Heat and Work Participation
+    - Cumulative Estimate Credibility Checks
+    - Main Cumulative Humid-Heat and Work Participation Estimates
+    - Timing, Placebo, and Dry-Heat Comparisons
+    - Cumulative Estimate Stability and Sensitivity Tests
+    interpretation: The adverse cumulative association is directionally stable and more coherent than alternatives. It remains
+      exploratory because exact interview timing, exposure, and unmeasured confounding are unresolved and global multiplicity
+      support is absent.
+  - levelName: 4. Education-related vulnerability
+    levelAim: Assess whether cumulative associations differ by low education.
+    inputs:
+    - Work Participation
+    - Low Education
+    - Five-Day Cumulative Humid-Heat Exposure
+    - Two-Month Average Maximum Wet-Bulb Temperature
+    - Survey Wave
+    - District
+    - Coastal Climate Fallback
+    modelOrMethod: Estimate Y = beta1 CumHeat + beta2 LowEdu + beta3(CumHeat x LowEdu) + controls and fixed effects; recover
+      both group slopes and beta3 with District-clustered inference and frozen sensitivities.
+    outputs:
+    - Cumulative Humid Heat by Education
+    - Education Differences in Cumulative Humid-Heat Associations
+    - Education Difference Stability and Sensitivity Tests
+    interpretation: Low-education slopes are more adverse and stable across wave exclusions. This is an exploratory vulnerability
+      signal, not the causal effect of education or proof of one occupational mechanism.
+  - levelName: 5. Wave-balanced district decision inputs
+    levelAim: Construct comparable district burden, reach, vulnerability, and support indicators.
+    inputs:
+    - District Threshold Humid-Heat Hazard
+    - District Continuous Humid-Heat Hazard
+    - Weighted Working-Age Scale
+    - District Low-Education Share
+    - District Threshold Humid-Heat Burden
+    - District Continuous Humid-Heat Burden
+    - District Vulnerable-Worker Scale
+    - Education Effective Sample Size
+    - Data Support Grade
+    modelOrMethod: Aggregate observed months within district-wave, average waves equally, and renormalize population shares.
+      Construct B_g^T = E_g mean_y(mean_c(CumD_gc^26)) and its nonnegative 26 C continuous-excess sensitivity; keep support
+      outside substantive scores.
+    outputs:
+    - Occupational Humid-Heat Protection Impact-Assessment Framework
+    - From District Conditions to Robust Protection Priorities
+    interpretation: Separates hazard, potential reach, vulnerable-worker scale, policy burden, and evidence support. The indicators
+      describe historical allocation conditions and do not quantify causal labor loss or future climate.
+  - levelName: 6. Policy alternatives and capacity contract
+    levelAim: Define transparent allocation alternatives for one common protection package.
+    inputs:
+    - Targeting Strategy
+    - Capacity Level
+    - District Priority Score
+    - District Threshold Humid-Heat Burden
+    - District Vulnerable-Worker Scale
+    - Weighted Working-Age Scale
+    modelOrMethod: Compare A0 no additional targeting, A1 uniform national provision, A2 burden-first, A3 vulnerable-worker-first,
+      A4 worker-scale-first, and A5 combined percentile scoring. Evaluate top 20, 40, and 60 districts and 10%, 20%, and 30%
+      worker-share capacities.
+    outputs:
+    - Proposed Occupational Humid-Heat Protection Alternatives and Assessment Criteria
+    - Occupational Humid-Heat Protection Impact-Assessment Framework
+    interpretation: A0-A5 are allocation rules, not different treatment technologies. Capacity levels are illustrative operational
+      constraints rather than observed budgets or costs.
+  - levelName: 7. Coverage consequences and trade-offs
+    levelAim: Compare what each allocation rule reaches under common capacity.
+    inputs:
+    - Humid-Heat Coverage
+    - Vulnerable-Worker Coverage
+    - Working-Age Coverage
+    - Targeting Strategy
+    - Capacity Level
+    modelOrMethod: For every selected set A, calculate shares of national working-age-weighted cumulative heat burden, low-education
+      working-age scale, and total working-age scale covered; compare the full objective frontier at each capacity.
+    outputs:
+    - Coverage, Equity, and Capacity Trade-Offs across Targeting Strategies
+    - Targeting Strategy Performance across Capacity Levels
+    interpretation: Objective-specific strategies lead their own criteria and A5 offers a visible compromise. Coverage is
+      observed allocation reach, not health, productivity, or welfare benefit.
+  - levelName: 8. Decision robustness
+    levelAim: Separate specification sensitivity from survey-wave composition uncertainty.
+    inputs:
+    - Priority Inclusion Frequency
+    - Wave-Bootstrap Inclusion Frequency
+    - District Priority Score
+    - Data Support Grade
+    - Capacity Level
+    modelOrMethod: Compute structural inclusion frequency over 420 prespecified burden, weight, full or leave-one-wave-out,
+      and eligibility scenarios. Separately compute wave-bootstrap frequency from 1,000 seeded replicates fixing threshold
+      burden and equal-weight A5 while resampling only Survey Waves.
+    outputs:
+    - From District Conditions to Robust Protection Priorities
+    - District Priority Rankings and Decision Robustness
+    interpretation: A stable core identifies districts repeatedly selected across explicit analytical choices. Separate frequencies
+      prevent specification uncertainty from being mistaken for wave-composition uncertainty.
+  - levelName: 9. Integrated evidence and limits
+    levelAim: Align the constructive policy narrative with empirical and decision boundaries.
+    inputs:
+    - All final Section 4 variables
+    - All 64 multiplicity-eligible tests
+    - All 18 leave-one-wave-out diagnostics
+    - All district allocation scenarios
+    modelOrMethod: Triangulate frozen association, education, spatial, multiplicity, coverage, support-grade, structural-scenario,
+      and wave-bootstrap evidence without selecting new outcomes or specifications after results.
+    outputs:
+    - Exploratory Specification and Multiplicity Audit
+    - Boundary Outcomes and Unsupported Modifiers
+    - All nine figures and fourteen tables
+    interpretation: Supports constructive screening and transparent targeting trade-offs. It does not identify causal program
+      effectiveness, monetary benefits, costs, exact interview-day effects, or a universally preferred strategy.
