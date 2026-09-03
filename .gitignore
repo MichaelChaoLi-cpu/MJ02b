@@ -5,3 +5,11 @@
 CLAUDE.md
 AGENTS.md
 /article
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+
+# Local operating-system and Frame stage-control state
+.DS_Store
+.frame-control/
